@@ -6,9 +6,9 @@ import (
 )
 
 func main() {
-	// 定义两个无缓冲通道，用于互相通知
-	chOdd := make(chan struct{})  // 控制奇数打印通道
-	chEven := make(chan struct{}) // 控制偶数打印通道
+	// 定义两个有缓冲的通道(防止在打印完最后一个数的时候死锁)，用于互相通知
+	chOdd := make(chan struct{}, 1)  // 控制奇数打印通道
+	chEven := make(chan struct{}, 1) // 控制偶数打印通道
 
 	var wg sync.WaitGroup
 	wg.Add(2) //定义一共有两个协程需要执行
@@ -29,7 +29,9 @@ func main() {
 		for i := 2; i <= 10; i += 2 {
 			<-chOdd // 将奇数协程中的空结构体取出来
 			fmt.Println("偶数:", i)
-			chEven <- struct{}{} // 打印完后，塞一个空结构体到偶数协程的通道中，通知奇数协程可以打印了
+			if i != 10 { //最后一个偶数打印完后就不用再往通道中塞结构体了,防止死锁
+				chEven <- struct{}{} // 打印完后，塞一个空结构体到偶数协程的通道中，通知奇数协程可以打印了
+			}
 		}
 	}()
 
