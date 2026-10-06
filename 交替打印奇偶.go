@@ -7,19 +7,19 @@ import (
 
 func main() {
 	// 定义两个无缓冲通道，用于互相通知
-	chOdd := make(chan struct{})  // 奇数协程的接力棒
-	chEven := make(chan struct{}) // 偶数协程的接力棒
+	chOdd := make(chan struct{})  // 控制奇数打印通道
+	chEven := make(chan struct{}) // 控制偶数打印通道
 
 	var wg sync.WaitGroup
-	wg.Add(2) // 等待两个协程结束
+	wg.Add(2) //定义一共有两个协程需要执行
 
 	// 1. 打印奇数的协程
 	go func() {
 		defer wg.Done()
 		for i := 1; i <= 10; i += 2 {
-			<-chEven // 阻塞等待偶数协程传递过来的接力棒（一开始等主协程发令）
+			<-chEven //将偶数协程中的空结构体取出来
 			fmt.Println("奇数:", i)
-			chOdd <- struct{}{} // 打印完后，把接力棒传给偶数协程
+			chOdd <- struct{}{} // 打印完后，塞一个空结构体到奇数协程的通道中，通知偶数协程可以打印了
 		}
 	}()
 
@@ -27,9 +27,9 @@ func main() {
 	go func() {
 		defer wg.Done()
 		for i := 2; i <= 10; i += 2 {
-			<-chOdd // 阻塞等待奇数协程传递过来的接力棒
+			<-chOdd // 将奇数协程中的空结构体取出来
 			fmt.Println("偶数:", i)
-			chEven <- struct{}{} // 打印完后，把接力棒传给奇数协程
+			chEven <- struct{}{} // 打印完后，塞一个空结构体到偶数协程的通道中，通知奇数协程可以打印了
 		}
 	}()
 
@@ -37,5 +37,4 @@ func main() {
 	chEven <- struct{}{}
 
 	wg.Wait() // 等待两个协程全部打印完毕
-	fmt.Println("打印结束")
 }
